@@ -18,6 +18,7 @@ class AVillachCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
 public:
 	AVillachCharacter();
 
@@ -51,6 +52,21 @@ protected:
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
+	/** Called for increase character movement speed */
+	void StartSprinting();
+
+	/** Returned to default movement speed */
+	void StopSprinting();
+	
+protected:
+	/** Multiplier value */
+	UPROPERTY(EditAnywhere, Category = Movement)
+	float SprintMultiplier;
+
+	/** is character sprinting? */
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsSprinting;
+	
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

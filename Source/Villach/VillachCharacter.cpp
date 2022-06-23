@@ -46,9 +46,10 @@ AVillachCharacter::AVillachCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+	
+	SprintMultiplier = 1.5f;
+	bIsSprinting = false;
+	
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -60,6 +61,9 @@ void AVillachCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AVillachCharacter::StartSprinting);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AVillachCharacter::StopSprinting);
+	
 
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AVillachCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &AVillachCharacter::MoveRight);
@@ -85,6 +89,21 @@ void AVillachCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Loca
 void AVillachCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	StopJumping();
+}
+
+void AVillachCharacter::StartSprinting()
+{
+	bIsSprinting = true;
+	GetCharacterMovement()->MaxWalkSpeed *= SprintMultiplier;
+}
+
+void AVillachCharacter::StopSprinting()
+{
+	if (bIsSprinting)
+	{
+		GetCharacterMovement()->MaxWalkSpeed /= SprintMultiplier;
+		bIsSprinting = false;
+	}
 }
 
 void AVillachCharacter::TurnAtRate(float Rate)
