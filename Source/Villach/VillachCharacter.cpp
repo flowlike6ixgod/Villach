@@ -53,28 +53,28 @@ AVillachCharacter::AVillachCharacter()
 	// Sprinting 
 	SprintMultiplier = 1.5f;
 	bIsSprinting = false;
-	EnergyPerSprint = 2.f;
+	StaminaPerSprint = 2.f;
 
 	// Energy
-	MaxEnergy = 100.f;
-	CurrentEnergy = MaxEnergy;
-	EnergyRegenPerSecond = 3.f;
+	MaxStamina = 100.f;
+	CurrentStamina = MaxStamina;
+	StaminaRegenPerSecond = 3.f;
 	
 }
 
 void AVillachCharacter::RestoreEnergy(float DeltaSeconds)
 {
-	if (!bIsSprinting && CurrentEnergy < MaxEnergy)
+	if (!bIsSprinting && CurrentStamina < MaxStamina)
 	{
-		CurrentEnergy = FMath::Min(MaxEnergy, CurrentEnergy + EnergyRegenPerSecond * DeltaSeconds);
+		CurrentStamina = FMath::Min(MaxStamina, CurrentStamina + StaminaRegenPerSecond * DeltaSeconds);
 	}
 }
 
-void AVillachCharacter::ReduceEnergy(float DeltaSeconds)
+void AVillachCharacter::ReduceStamina(float DeltaSeconds)
 {
-	if (bIsSprinting && CurrentEnergy > EnergyPerSprint)
+	if (bIsSprinting && CurrentStamina > StaminaPerSprint)
 	{
-		CurrentEnergy = FMath::Min(MaxEnergy, CurrentEnergy - EnergyPerSprint * DeltaSeconds);
+		CurrentStamina = FMath::Min(MaxStamina, CurrentStamina - StaminaPerSprint * DeltaSeconds);
 	}
 }
 
@@ -112,7 +112,7 @@ void AVillachCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	// Always regenerate energy when current < max energy value
-	if (CurrentEnergy < MaxEnergy)
+	if (CurrentStamina < MaxStamina)
 	{
 		RestoreEnergy(DeltaSeconds);
 	}
@@ -120,7 +120,7 @@ void AVillachCharacter::Tick(float DeltaSeconds)
 	// Reduce energy if character in sprinting state
 	if (bIsSprinting)
 	{
-		ReduceEnergy(DeltaSeconds);
+		ReduceStamina(DeltaSeconds);
 	}
 }
 
@@ -136,7 +136,7 @@ void AVillachCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Loca
 
 void AVillachCharacter::StartSprinting()
 {
-	if (CurrentEnergy > EnergyPerSprint)
+	if (CurrentStamina > StaminaPerSprint)
 	{
 		bIsSprinting = true;
 		GetCharacterMovement()->MaxWalkSpeed *= SprintMultiplier;

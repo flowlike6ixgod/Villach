@@ -71,20 +71,20 @@ protected:
 
 	/** How much energy is consumed per sprint tick */
 	UPROPERTY(EditAnywhere, Category = Movement)
-	float EnergyPerSprint;
+	float StaminaPerSprint;
 
 	///  CHARACTER STATS
 	//
 	/** Max energy value */
 	UPROPERTY(EditAnywhere, Category = "Character | Stats")
-	float MaxEnergy;
+	float MaxStamina;
 
 	/** Current energy value */
 	UPROPERTY(EditAnywhere, Category = "Character | Stats")
-	float CurrentEnergy;
+	float CurrentStamina;
 
 	UPROPERTY(EditAnywhere, Category = "Character | Stats")
-	float EnergyRegenPerSecond;
+	float StaminaRegenPerSecond;
 
 public:
 	/**
@@ -99,11 +99,11 @@ public:
 	 * @param DeltaSeconds Reduce time(sets energy reduce rate)
 	 */
 	UFUNCTION(BlueprintCallable)
-	void ReduceEnergy(float DeltaSeconds);
+	void ReduceStamina(float DeltaSeconds);
 
 	/** Get current energy */
 	UFUNCTION(BlueprintCallable)
-	float GetCurrentEnergy() const { return CurrentEnergy; };
+	float GetCurrentStamina() const { return CurrentStamina; };
 	
 protected:
 	// APawn interface
