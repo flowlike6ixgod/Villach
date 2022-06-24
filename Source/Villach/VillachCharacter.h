@@ -59,6 +59,8 @@ protected:
 	void StopSprinting();
 	
 protected:
+	///  CHARACTER MOVEMENT
+	//
 	/** Multiplier value */
 	UPROPERTY(EditAnywhere, Category = Movement)
 	float SprintMultiplier;
@@ -66,11 +68,49 @@ protected:
 	/** is character sprinting? */
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsSprinting;
+
+	/** How much energy is consumed per sprint tick */
+	UPROPERTY(EditAnywhere, Category = Movement)
+	float EnergyPerSprint;
+
+	///  CHARACTER STATS
+	//
+	/** Max energy value */
+	UPROPERTY(EditAnywhere, Category = "Character | Stats")
+	float MaxEnergy;
+
+	/** Current energy value */
+	UPROPERTY(EditAnywhere, Category = "Character | Stats")
+	float CurrentEnergy;
+
+	UPROPERTY(EditAnywhere, Category = "Character | Stats")
+	float EnergyRegenPerSecond;
+
+public:
+	/**
+	 * Restore current energy value
+	 * @param DeltaSeconds regeneration time(sets energy regeneration rate)
+	 */
+	UFUNCTION(BlueprintCallable)
+	void RestoreEnergy(float DeltaSeconds);
+
+	/**
+	 * Reduce current energy value
+	 * @param DeltaSeconds Reduce time(sets energy reduce rate)
+	 */
+	UFUNCTION(BlueprintCallable)
+	void ReduceEnergy(float DeltaSeconds);
+
+	/** Get current energy */
+	UFUNCTION(BlueprintCallable)
+	float GetCurrentEnergy() const { return CurrentEnergy; };
 	
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
+
+	virtual void Tick(float DeltaSeconds) override;
 
 public:
 	/** Returns CameraBoom subobject **/

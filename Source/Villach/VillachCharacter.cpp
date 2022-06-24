@@ -13,6 +13,9 @@
 
 AVillachCharacter::AVillachCharacter()
 {
+	bAllowTickBeforeBeginPlay = true;
+	PrimaryActorTick.bCanEverTick = true;
+	
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -46,10 +49,33 @@ AVillachCharacter::AVillachCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-	
+
+	// Sprinting 
 	SprintMultiplier = 1.5f;
 	bIsSprinting = false;
+	EnergyPerSprint = 2.f;
+
+	// Energy
+	MaxEnergy = 100.f;
+	CurrentEnergy = MaxEnergy;
+	EnergyRegenPerSecond = 3.f;
 	
+}
+
+void AVillachCharacter::RestoreEnergy(float DeltaSeconds)
+{
+	if (!bIsSprinting && CurrentEnergy < MaxEnergy)
+	{
+		CurrentEnergy = FMath::Min(MaxEnergy, CurrentEnergy + EnergyRegenPerSecond * DeltaSeconds);
+	}
+}
+
+void AVillachCharacter::ReduceEnergy(float DeltaSeconds)
+{
+	if (bIsSprinting && CurrentEnergy > EnergyPerSprint)
+	{
+		CurrentEnergy = FMath::Min(MaxEnergy, CurrentEnergy - EnergyPerSprint * DeltaSeconds);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,6 +107,23 @@ void AVillachCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindTouch(IE_Released, this, &AVillachCharacter::TouchStopped);
 }
 
+void AVillachCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	// Always regenerate energy when current < max energy value
+	if (CurrentEnergy < MaxEnergy)
+	{
+		RestoreEnergy(DeltaSeconds);
+	}
+	
+	// Reduce energy if character in sprinting state
+	if (bIsSprinting)
+	{
+		ReduceEnergy(DeltaSeconds);
+	}
+}
+
 void AVillachCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	Jump();
@@ -93,8 +136,11 @@ void AVillachCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Loca
 
 void AVillachCharacter::StartSprinting()
 {
-	bIsSprinting = true;
-	GetCharacterMovement()->MaxWalkSpeed *= SprintMultiplier;
+	if (CurrentEnergy > EnergyPerSprint)
+	{
+		bIsSprinting = true;
+		GetCharacterMovement()->MaxWalkSpeed *= SprintMultiplier;
+	}
 }
 
 void AVillachCharacter::StopSprinting()
