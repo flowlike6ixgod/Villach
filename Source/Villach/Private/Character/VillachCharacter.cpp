@@ -1,11 +1,12 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "VillachCharacter.h"
+#include "Villach/Public/Character/VillachCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/SpringArmComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,11 +50,14 @@ AVillachCharacter::AVillachCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
+	
 	// Sprinting 
 	SprintMultiplier = 1.5f;
 	bIsSprinting = false;
 	StaminaPerSprint = 2.f;
+
+	bIsJumping = false;
+	StaminaPerJump = 15.f;
 
 	// Energy
 	MaxStamina = 100.f;
@@ -62,22 +66,50 @@ AVillachCharacter::AVillachCharacter()
 	
 }
 
-void AVillachCharacter::RestoreEnergy(float DeltaSeconds)
+void AVillachCharacter::SetMovementState(const EVillachMovementState NewState)
 {
-	if (!bIsSprinting && CurrentStamina < MaxStamina)
+	if (MovementState != NewState)
+	{
+		PrevMovementState = MovementState;
+		MovementState = NewState;
+		OnMovementStateChanged();
+	}
+}
+
+void AVillachCharacter::SetCharacterState(EVillachCharacterState NewState)
+{
+	if (CharacterState != NewState)
+	{
+		PrevCharacterState = CharacterState;
+		CharacterState = NewState;
+	}
+}
+
+void AVillachCharacter::UpdateCharacterMovement()
+{
+	if (CharacterState == EVillachCharacterState::Grounded)
+	{
+		OnMovementStateChanged();
+	}
+}
+
+void AVillachCharacter::RestoreStamina(float DeltaSeconds)
+{
+	// Always regenerate energy when current < max energy value
+	if (CurrentStamina <= MaxStamina)
 	{
 		CurrentStamina = FMath::Min(MaxStamina, CurrentStamina + StaminaRegenPerSecond * DeltaSeconds);
 	}
 }
 
-void AVillachCharacter::ReduceStamina(float DeltaSeconds)
+void AVillachCharacter::ReduceStamina(float StaminaAmount, float DeltaSeconds)
 {
-	if (bIsSprinting && CurrentStamina > StaminaPerSprint)
+	// Reduce energy if character in sprinting state
+	if (CurrentStamina >= StaminaPerSprint)
 	{
-		CurrentStamina = FMath::Min(MaxStamina, CurrentStamina - StaminaPerSprint * DeltaSeconds);
+		CurrentStamina = FMath::Min(MaxStamina, CurrentStamina - StaminaAmount * DeltaSeconds);
 	}
 }
-
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -85,12 +117,11 @@ void AVillachCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AVillachCharacter::StartJump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AVillachCharacter::StopJump);
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AVillachCharacter::StartSprinting);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AVillachCharacter::StopSprinting);
 	
-
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AVillachCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &AVillachCharacter::MoveRight);
 
@@ -101,42 +132,67 @@ void AVillachCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &AVillachCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AVillachCharacter::LookUpAtRate);
-
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AVillachCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AVillachCharacter::TouchStopped);
 }
 
 void AVillachCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	// Always regenerate energy when current < max energy value
-	if (CurrentStamina < MaxStamina)
+	if (!bIsSprinting)
 	{
-		RestoreEnergy(DeltaSeconds);
+		// Restores stamina if character is not sprinting
+		RestoreStamina(DeltaSeconds);
 	}
-	
-	// Reduce energy if character in sprinting state
-	if (bIsSprinting)
+
+	UpdateCharacterMovement();
+
+	if (CurrentStamina >= StaminaPerSprint && bIsSprinting && MovementState == EVillachMovementState::Sprint)
 	{
-		ReduceStamina(DeltaSeconds);
+		ReduceStamina(StaminaPerSprint, DeltaSeconds);
+	}
+	else
+	{
+		StopSprinting();
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, GetEnumToString(MovementState));
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, GetEnumToString(CharacterState));
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::SanitizeFloat(CurrentStamina));
+}
+
+void AVillachCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+	if (GetCharacterMovement()->MovementMode == MOVE_Walking)
+	{
+		SetCharacterState(EVillachCharacterState::Grounded);
+	}
+	else if (GetCharacterMovement()->MovementMode == MOVE_Falling)
+	{
+		SetCharacterState(EVillachCharacterState::InAir);
 	}
 }
 
-void AVillachCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+void AVillachCharacter::OnMovementStateChanged()
 {
-	Jump();
-}
-
-void AVillachCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-	StopJumping();
+	if (GetGroundSpeed() <= 0.f)
+	{
+		SetMovementState(EVillachMovementState::Idle);
+	}
+	// if character speed > than default run speed, state changed to Sprint
+	else if (GetGroundSpeed() > 500.f)
+	{
+		SetMovementState(EVillachMovementState::Sprint);
+	}
+	else
+	{
+		SetMovementState(EVillachMovementState::Run);
+	}
 }
 
 void AVillachCharacter::StartSprinting()
 {
-	if (CurrentStamina > StaminaPerSprint)
+	if (!bIsSprinting && GetGroundSpeed() > 0.f)
 	{
 		bIsSprinting = true;
 		GetCharacterMovement()->MaxWalkSpeed *= SprintMultiplier;
@@ -147,9 +203,14 @@ void AVillachCharacter::StopSprinting()
 {
 	if (bIsSprinting)
 	{
-		GetCharacterMovement()->MaxWalkSpeed /= SprintMultiplier;
 		bIsSprinting = false;
+		GetCharacterMovement()->MaxWalkSpeed /= SprintMultiplier;
 	}
+}
+
+float AVillachCharacter::GetGroundSpeed() const
+{
+	return UKismetMathLibrary::VSizeXY(GetCharacterMovement()->Velocity);
 }
 
 void AVillachCharacter::TurnAtRate(float Rate)
@@ -164,17 +225,36 @@ void AVillachCharacter::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
 }
 
+void AVillachCharacter::StartJump()
+{
+	if (CurrentStamina >= StaminaPerJump && CharacterState != EVillachCharacterState::InAir)
+	{
+		Jump();
+		bIsJumping = true;
+		ReduceStamina(StaminaPerJump, 1.f);
+	}
+}
+
+void AVillachCharacter::StopJump()
+{
+	bIsJumping = false;
+	StopJumping();
+}
+
 void AVillachCharacter::MoveForward(float Value)
 {
 	if ((Controller != nullptr) && (Value != 0.0f))
 	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		if (CharacterState == EVillachCharacterState::Grounded)
+		{
+			// find out which way is forward
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-		// get forward vector
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, Value);
+			// get forward vector
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
+		}
 	}
 }
 
@@ -182,13 +262,16 @@ void AVillachCharacter::MoveRight(float Value)
 {
 	if ( (Controller != nullptr) && (Value != 0.0f) )
 	{
-		// find out which way is right
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		if (CharacterState == EVillachCharacterState::Grounded)
+		{
+			// find out which way is right
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
 	
-		// get right vector 
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		// add movement in that direction
-		AddMovementInput(Direction, Value);
+			// get right vector 
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+			// add movement in that direction
+			AddMovementInput(Direction, Value);
+		}
 	}
 }

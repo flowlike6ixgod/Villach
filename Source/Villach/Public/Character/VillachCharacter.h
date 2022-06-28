@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Libraries/CharacterEnumsLibrary.h"
 #include "VillachCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -47,11 +48,11 @@ protected:
 	void LookUpAtRate(float Rate);
 
 	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
+	void StartJump();
 
 	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
-
+	void StopJump();
+	
 	/** Called for increase character movement speed */
 	void StartSprinting();
 
@@ -61,6 +62,10 @@ protected:
 protected:
 	///  CHARACTER MOVEMENT
 	//
+	/** Gets current ground speed */
+	UFUNCTION(BlueprintCallable)
+	float GetGroundSpeed() const;
+	
 	/** Multiplier value */
 	UPROPERTY(EditAnywhere, Category = Movement)
 	float SprintMultiplier;
@@ -72,6 +77,14 @@ protected:
 	/** How much energy is consumed per sprint tick */
 	UPROPERTY(EditAnywhere, Category = Movement)
 	float StaminaPerSprint;
+
+	/** is character jumping? */
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsJumping;
+
+	/** How much energy is consumed per jump */
+	UPROPERTY(EditAnywhere, Category = Movement)
+	float StaminaPerJump;
 
 	///  CHARACTER STATS
 	//
@@ -86,20 +99,46 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Character | Stats")
 	float StaminaRegenPerSecond;
 
+protected:
+	/// ENUMS
+	//
+	/** Character current movement state */
+	UPROPERTY(BlueprintReadOnly, Category = "Character | State Values")
+	EVillachMovementState MovementState = EVillachMovementState::Idle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character | State Values")
+	EVillachMovementState PrevMovementState;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character | State Values")
+	EVillachCharacterState CharacterState = EVillachCharacterState::Grounded;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character | State Values")
+	EVillachCharacterState PrevCharacterState = EVillachCharacterState::None;;
+
+	/** Sets movement state */
+	void SetMovementState(EVillachMovementState NewState);
+
+	/** Sets character state */
+	void SetCharacterState(EVillachCharacterState NewState);
+	
+	/** Update character movement every tick */
+	void UpdateCharacterMovement();
+
 public:
 	/**
-	 * Restore current energy value
-	 * @param DeltaSeconds regeneration time(sets energy regeneration rate)
+	 * Restore current Stamina value
+	 * @param DeltaSeconds regeneration time (sets energy regeneration rate)
 	 */
 	UFUNCTION(BlueprintCallable)
-	void RestoreEnergy(float DeltaSeconds);
+	void RestoreStamina(float DeltaSeconds);
 
 	/**
 	 * Reduce current energy value
-	 * @param DeltaSeconds Reduce time(sets energy reduce rate)
+	 * @param StaminaAmount the amount of stamina that is taken away with a certain action
+	 * @param DeltaSeconds sets smooth stamina drain
 	 */
 	UFUNCTION(BlueprintCallable)
-	void ReduceStamina(float DeltaSeconds);
+	void ReduceStamina(float StaminaAmount, float DeltaSeconds);
 
 	/** Get current energy */
 	UFUNCTION(BlueprintCallable)
@@ -111,6 +150,10 @@ protected:
 	// End of APawn interface
 
 	virtual void Tick(float DeltaSeconds) override;
+
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0) override;
+
+	virtual void OnMovementStateChanged();
 
 public:
 	/** Returns CameraBoom subobject **/
