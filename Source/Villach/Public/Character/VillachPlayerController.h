@@ -38,7 +38,7 @@ public:
 	void TurnAtRate(const FInputActionValue& Value);
 
 protected:
-
+	/* Input mapping */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Input)
 	TObjectPtr<UInputMappingContext> PrimaryInputMapping = nullptr;
 

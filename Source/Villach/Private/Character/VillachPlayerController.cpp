@@ -39,11 +39,6 @@ void AVillachPlayerController::SetupEnhancedSubsystem()
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(PrimaryInputMapping, 1);
-			UE_LOG(LogTemp, Warning, TEXT("SetupEnhancedSubsystem() True"));
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("SetupEnhancedSubsystem() false"));
 		}
 	}
 }
@@ -107,13 +102,7 @@ void AVillachPlayerController::SetupInputComponent()
 		EnhancedInputComponent->ClearActionValueBindings();
 
 		BindAction(PrimaryInputMapping);
-		UE_LOG(LogTemp, Warning, TEXT("SetupInputComponent() True"));
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SetupInputComponent() false"));
-	}
-
 }
 
 void AVillachPlayerController::OnPossess(APawn* InPawn)
@@ -123,6 +112,4 @@ void AVillachPlayerController::OnPossess(APawn* InPawn)
 	VillachCharacter = Cast<AVillachCharacter>(InPawn);
 
 	SetupEnhancedSubsystem();
-
-	UE_LOG(LogTemp, Warning, TEXT("OnPossess()"));
 }
