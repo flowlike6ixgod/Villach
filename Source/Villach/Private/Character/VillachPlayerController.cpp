@@ -5,11 +5,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
-#include "VillachGameMode.h"
-
-AVillachPlayerController::AVillachPlayerController()
-{
-}
+#include "Kismet/GameplayStatics.h"
+#include "Character/VillachCharacter.h"
 
 void AVillachPlayerController::BindAction(UInputMappingContext* MappingContext)
 {
@@ -38,7 +35,9 @@ void AVillachPlayerController::SetupEnhancedSubsystem()
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
-			Subsystem->AddMappingContext(PrimaryInputMapping, 1);
+			FModifyContextOptions ContextOptions;
+			ContextOptions.bForceImmediately = 1;
+			Subsystem->AddMappingContext(PrimaryInputMapping, 1, ContextOptions);
 		}
 	}
 }
@@ -75,19 +74,19 @@ void AVillachPlayerController::JumpAction(const FInputActionValue& bValue)
 	}
 }
 
-void AVillachPlayerController::LookUpAtRate(const FInputActionValue& Value)
+void AVillachPlayerController::LookUpAction(const FInputActionValue& Value)
 {
 	if (VillachCharacter)
 	{
-		VillachCharacter->LookUpAtRate(Value.GetMagnitude());
+		VillachCharacter->LookUpAction(Value.GetMagnitude());
 	}
 }
 
-void AVillachPlayerController::TurnAtRate(const FInputActionValue& Value)
+void AVillachPlayerController::TurnRightAction(const FInputActionValue& Value)
 {
 	if (VillachCharacter)
 	{
-		VillachCharacter->TurnAtRate(Value.GetMagnitude());
+		VillachCharacter->TurnRightAction(Value.GetMagnitude());
 	}
 }
 
@@ -111,5 +110,13 @@ void AVillachPlayerController::OnPossess(APawn* InPawn)
 
 	VillachCharacter = Cast<AVillachCharacter>(InPawn);
 
+	SetupEnhancedSubsystem();
+}
+
+void AVillachPlayerController::OnRep_Pawn()
+{
+	Super::OnRep_Pawn();
+
+	VillachCharacter = Cast<AVillachCharacter>(GetPawn());
 	SetupEnhancedSubsystem();
 }

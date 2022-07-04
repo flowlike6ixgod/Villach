@@ -24,40 +24,40 @@ public:
 	AVillachCharacter();
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
-	float TurnRateGamepad;
+	UPROPERTY(EditAnywhere, Category=Input)
+	float TurnRateSensitivity;
 
 public:
 	/// Enhanced input
 	//
 	/** Called for forwards/backward input */
-	UFUNCTION(BlueprintNativeEvent, Category = "Movement")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Movement")
 	void MoveForwardAction(float Value);
 
 	/** Called for side to side input */
-	UFUNCTION(BlueprintNativeEvent, Category = "Movement")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Movement")
 	void MoveRightAction(float Value);
 
 	/** 
 	 * Called via input to turn at a given rate. 
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category = "Movement")
-	void TurnAtRate(float Rate);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable ,Category = "Movement")
+	void TurnRightAction(float Rate);
 
 	/**
 	 * Called via input to turn look up/down at a given rate. 
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category = "Movement")
-	void LookUpAtRate(float Rate);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable , Category = "Movement")
+	void LookUpAction(float Rate);
 
 	/** Handler for when a touch input begins. */
-	UFUNCTION(BlueprintNativeEvent, Category = "Movement")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable , Category = "Movement")
 	void JumpAction(bool Value);
 	
 	/** Called for increase character movement speed */
-	UFUNCTION(BlueprintNativeEvent, Category = "Movement")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable , Category = "Movement")
 	void SprintAction(bool bValue);
 
 
@@ -153,6 +153,8 @@ protected:
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0) override;
 
 	virtual void OnMovementStateChanged();
+
+	//virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 public:
 	/** Returns CameraBoom subobject **/

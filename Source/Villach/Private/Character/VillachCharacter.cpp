@@ -20,7 +20,7 @@ AVillachCharacter::AVillachCharacter()
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	// set our turn rate for input
-	TurnRateGamepad = 50.f;
+	TurnRateSensitivity = 50.f;
 
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -120,27 +120,6 @@ void AVillachCharacter::ReduceStamina(float StaminaAmount, float DeltaSeconds)
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-// void AVillachCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
-// {
-// 	// Set up gameplay key bindings
-// 	check(PlayerInputComponent);
-// 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AVillachCharacter::StartJump);
-// 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AVillachCharacter::StopJump);
-// 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AVillachCharacter::StartSprinting);
-// 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AVillachCharacter::StopSprinting);
-//
-// 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AVillachCharacter::MoveForward);
-// 	PlayerInputComponent->BindAxis("Move Right / Left", this, &AVillachCharacter::MoveRight);
-//
-// 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-// 	// "turn" handles devices that provide an absolute delta, such as a mouse.
-// 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-// 	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
-// 	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &AVillachCharacter::TurnAtRate);
-// 	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
-// 	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AVillachCharacter::LookUpAtRate);
-// }
-
 void AVillachCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -196,7 +175,6 @@ void AVillachCharacter::OnMovementStateChanged()
 
 void AVillachCharacter::SprintAction_Implementation(bool bValue)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Sprint Action work"));
 	if (bValue)
 	{
 		if (!bIsSprinting && GetGroundSpeed() > 0.f)
@@ -204,7 +182,6 @@ void AVillachCharacter::SprintAction_Implementation(bool bValue)
 			bIsSprinting = true;
 			GetCharacterMovement()->MaxWalkSpeed *= SprintMultiplier;
 		}
-		UE_LOG(LogTemp, Warning, TEXT("Sprint Action true"));
 	}
 	else
 	{
@@ -213,7 +190,6 @@ void AVillachCharacter::SprintAction_Implementation(bool bValue)
 			bIsSprinting = false;
 			GetCharacterMovement()->MaxWalkSpeed /= SprintMultiplier;
 		}
-		UE_LOG(LogTemp, Warning, TEXT("Sprint Action false"));
 	}
 
 }
@@ -225,26 +201,23 @@ float AVillachCharacter::GetGroundSpeed() const
 
 void AVillachCharacter::MoveRightAction_Implementation(float Value)
 {
-	if ( (Controller != nullptr) && (Value != 0.0f) )
+	if (CharacterState == EVillachCharacterState::Grounded)
 	{
-		if (CharacterState == EVillachCharacterState::Grounded)
-		{
-			// find out which way is right
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
+		// find out which way is right
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-			// get right vector
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-			// add movement in that direction
-			AddMovementInput(Direction, Value);
-		}
+		// get right vector
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		// add movement in that direction
+		AddMovementInput(Direction, Value);
 	}
 }
 
-void AVillachCharacter::TurnAtRate_Implementation(float Rate)
+void AVillachCharacter::TurnRightAction_Implementation(float Rate)
 {
 	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * TurnRateGamepad);
+	AddControllerYawInput(Rate * TurnRateSensitivity);
 }
 
 void AVillachCharacter::JumpAction_Implementation(bool bValue)
@@ -265,28 +238,22 @@ void AVillachCharacter::JumpAction_Implementation(bool bValue)
 	}
 }
 
-void AVillachCharacter::LookUpAtRate_Implementation(float Rate)
+void AVillachCharacter::LookUpAction_Implementation(float Rate)
 {
 	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * TurnRateGamepad);
+	AddControllerPitchInput(Rate * TurnRateSensitivity);
 }
 
 void AVillachCharacter::MoveForwardAction_Implementation(float Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("MoveForward Action work"));
-	if (Value != 0.0f)
+	if (CharacterState == EVillachCharacterState::Grounded)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MoveForward Action value != 0"));
-		if (CharacterState == EVillachCharacterState::Grounded)
-		{
-			// find out which way is forward
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
+		// find out which way is forward
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-			// get forward vector
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-			AddMovementInput(Direction, Value);
-		}
+		// get forward vector
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		AddMovementInput(Direction, Value);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("MoveForward Action value == 0"));
 }
