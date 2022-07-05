@@ -7,6 +7,7 @@
 #include "InputMappingContext.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/VillachCharacter.h"
+#include "Character/VillachPlayerCameraManager.h"
 
 void AVillachPlayerController::BindAction(UInputMappingContext* MappingContext)
 {
@@ -110,13 +111,11 @@ void AVillachPlayerController::OnPossess(APawn* InPawn)
 
 	VillachCharacter = Cast<AVillachCharacter>(InPawn);
 
-	SetupEnhancedSubsystem();
-}
+	AVillachPlayerCameraManager* CameraManager = Cast<AVillachPlayerCameraManager>(PlayerCameraManager);
+	if (VillachCharacter && CameraManager)
+	{
+		CameraManager->OnPosses(VillachCharacter);
+	}
 
-void AVillachPlayerController::OnRep_Pawn()
-{
-	Super::OnRep_Pawn();
-
-	VillachCharacter = Cast<AVillachCharacter>(GetPawn());
 	SetupEnhancedSubsystem();
 }

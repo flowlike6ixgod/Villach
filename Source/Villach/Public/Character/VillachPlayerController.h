@@ -51,8 +51,6 @@ protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
 
-	virtual void OnRep_Pawn() override;
-
 	virtual void BindAction(UInputMappingContext* MappingContext);
 
 };
