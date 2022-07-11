@@ -18,10 +18,42 @@ class VILLACH_API AVillachPlayerCameraManager : public APlayerCameraManager
 public:
 	AVillachPlayerCameraManager();
 
-	void OnPosses(AVillachCharacter* NewCharacter);
-
 protected:
 
 	TObjectPtr<AVillachCharacter> PossessedCharacter;
 
+protected:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Mesh)
+	USkeletalMeshComponent* CameraMeshComp;
+
+	UPROPERTY(EditAnywhere, Category = Camera)
+	float InterpSpeed;
+
+	UPROPERTY(EditAnywhere, Category = Camera)
+	FTransform SmoothPivotTarget;
+
+	UPROPERTY(EditAnywhere, Category = Camera)
+	FVector PivotLocation;
+
+	UPROPERTY(EditAnywhere, Category = Camera)
+	FRotator TargetCameraRotation;
+
+	UPROPERTY(EditAnywhere, Category = Camera)
+	FVector TargetCameraLocation;
+
+	UPROPERTY(EditAnywhere, Category = Camera)
+	FRotator CameraRotationYaw;
+
+public:
+
+	void OnPosses(AVillachCharacter* NewCharacter);
+
+	bool CustomCamera(const FVector& Location, const FRotator& Rotation, float DeltaTime, float& FOV);
+
+	float GetCameraBehavior(FName CurveName) const;
+
+	FVector CalculateAxisLag(FVector CurrentLocation, FVector TargetLocation, FRotator CameraRotation, FVector LagSpeed, float DeltaTime);
+
+	virtual void UpdateViewTargetInternal(FTViewTarget& OutVT, float DeltaTime) override;
 };
